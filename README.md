@@ -50,6 +50,7 @@ Stay tuned for the upcoming updates, and feel free to contribute and provide fee
 <p float="left">
   <img src="images/original_image.jpg" alt="Original image" width="30%" />
 </p>
+
 ### vit_b
 
 <p float="left">
