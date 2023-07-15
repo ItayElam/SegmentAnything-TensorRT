@@ -1,0 +1,8 @@
+.idea/
+__pycache__/
+accuracy_test/
+exported_models/
+*.pth
+*.onnx
+*.engine
+*.jpg
