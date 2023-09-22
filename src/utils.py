@@ -84,10 +84,8 @@ def preprocess_image(image: np.ndarray, target_length: int, device, pixel_mean, 
     input_image_torch = torch.as_tensor(input_image).to(device)
     input_image_torch = input_image_torch.permute(2, 0, 1).contiguous()[None, :, :, :]
 
-    # Normalize colors
     input_image_torch = (input_image_torch - pixel_mean.to(device)) / pixel_std.to(device)
 
-    # Pad
     h, w = input_image_torch.shape[-2:]
     padh = img_size - h
     padw = img_size - w
@@ -133,21 +131,15 @@ def allocate_buffers(engine, max_batch_size):
     bindings = []
     stream = cuda.Stream()
     for binding in engine:
-        # print(binding, engine.get_binding_shape(binding))
-        # print(engine.get_binding_shape(binding))
         size = trt.volume(engine.get_binding_shape(binding)) * max_batch_size
         if size < 0 and engine.binding_is_input(binding):
             size = trt.volume(engine.get_profile_shape(0, binding)[2]) * max_batch_size
-        if binding == "masks":
-            size = 534 * 800 * max_batch_size
-        # print(binding, engine.get_binding_shape(binding), engine.get_profile_shape(0, binding)[2])
         dtype = trt.nptype(engine.get_binding_dtype(binding))
         # Allocate host and device buffers
         host_mem = cuda.pagelocked_empty(size, dtype)
         device_mem = cuda.mem_alloc(host_mem.nbytes)
         # Append the device buffer to device bindings.
         bindings.append(int(device_mem))
-        # Append to the appropriate list.
         if engine.binding_is_input(binding):
             inputs.append(HostDeviceMem(host_mem, device_mem))
         else:

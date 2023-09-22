@@ -82,26 +82,26 @@ chmod +x launch.sh
 
 #### IOU Comparison for vit_b
 
-|   Model    |    Minimum IOU     |      Mean IOU      |
-|------------|--------------------|--------------------|
-| vit_b FP32 | 0.9986301005479598 | 0.9997616569676785 |
-| vit_b FP16 | 0.9931086579111282 | 0.9986692740516354 |
+| Model      | Minimum IOU | Mean IOU |
+|------------|-------------|----------|
+| vit_b FP32 | 0.9986      | 0.9997   |
+| vit_b FP16 | 0.9931      | 0.9986   |
 ------------------------------------------------------
 
 #### IOU Comparison for vit_l               
 
-|   Model    |    Minimum IOU     |      Mean IOU      |
-|------------|--------------------|--------------------|
-| vit_l FP32 | 0.998338574565372  | 0.9996625631803544 |
-| vit_l FP16 | 0.9958023990347079 | 0.9987651042685268 |
+| Model      | Minimum IOU | Mean IOU |
+|------------|-------------|----------|
+| vit_l FP32 | 0.9983      | 0.9996   |
+| vit_l FP16 | 0.9958      | 0.9987   |
 ------------------------------------------------------
 
 #### IOU Comparison for vit_h
 
-|   Model    |    Minimum IOU     |      Mean IOU      |
-|------------|--------------------|--------------------|
-| vit_h FP32 | 0.9982185206885968 | 0.9997681312637756 |
-| vit_h FP16 | 0.9911282847930237 | 0.9983110764855448 |
+| Model      | Minimum IOU | Mean IOU |
+|------------|-------------|----------|
+| vit_h FP32 | 0.9982      | 0.9997   |
+| vit_h FP16 | 0.9911      | 0.9983   |
 ------------------------------------------------------
 
 ## Visualizations
@@ -162,7 +162,7 @@ after you're satisfied with the location, press enters to run inference.
 # vit_b and vit_l
 python main.py infer --pth_path pth_model/sam_vit_b_01ec64.pth --model_1 exported_models/vit_b/model_fp32.engine --img_path images/original_image.jpg
 # vit_h
-python main.py infer --pth_path pth_model/sam_vit_h_4b8939.pth --model_1 exported_models/vit_h/model_fp32_1.engine --model_1 exported_models/vit_h/model_fp32_2.engine --img_path images/original_image.jpg
+python main.py infer --pth_path pth_model/sam_vit_h_4b8939.pth --model_1 exported_models/vit_h/model_fp32_1.engine --model_2 exported_models/vit_h/model_fp32_2.engine --img_path images/original_image.jpg
 ```
 
 

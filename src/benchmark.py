@@ -80,7 +80,6 @@ class AccuracyTester:
         return image, np.array(points), np.array(labels)
 
     def test_accuracy(self):
-        # Instantiate PrettyTable
         self.table = PrettyTable()
         self.table.field_names = ["Model", "Minimum IOU", "Mean IOU"]
         self.table.title = f"IOU Comparison for {self.model_type}"
@@ -116,7 +115,6 @@ class AccuracyTester:
         image_count = 0
         for output_image_default, output_image32, output_image16, (original_image, input_point, _) in zip(
                 output_image_default_arr, output_image_fp32_arr, output_image_fp16_arr, data_arr):
-            # Assumes that output_image is a binary mask of the predicted object
             iou_score_32 = calculate_iou(output_image32, output_image_default)
             iou_score_16 = calculate_iou(output_image16, output_image_default)
             if self.show_results or self.save_results:
@@ -128,22 +126,19 @@ class AccuracyTester:
                 output_image32 = cv2.cvtColor(output_image32, cv2.COLOR_GRAY2RGB)
                 output_image16 = cv2.cvtColor(output_image16, cv2.COLOR_GRAY2RGB)
 
-                # Add dots
-                cv2.circle(original_image, input_point[0], 3 * (max(original_image.shape) // 800), (0, 0, 255), -1)
-                cv2.circle(output_image_default, input_point[0], 3 * (max(original_image.shape) // 800), (0, 0, 255), -1)
-                cv2.circle(output_image32, input_point[0], 3 * (max(original_image.shape) // 800), (0, 0, 255), -1)
-                cv2.circle(output_image16, input_point[0], 3 * (max(original_image.shape) // 800), (0, 0, 255), -1)
+                for point in input_point:
+                    cv2.circle(original_image, point, 3 * (max(original_image.shape) // 800), (0, 0, 255), -1)
+                    cv2.circle(output_image_default, point, 3 * (max(original_image.shape) // 800), (0, 0, 255), -1)
+                    cv2.circle(output_image32, point, 3 * (max(original_image.shape) // 800), (0, 0, 255), -1)
+                    cv2.circle(output_image16, point, 3 * (max(original_image.shape) // 800), (0, 0, 255), -1)
 
-                # Resize images to have the same dimensions
                 original_image = cv2.resize(original_image, (screen_width // 2, screen_height // 2))
                 output_image_default = cv2.resize(output_image_default, (screen_width // 2, screen_height // 2))
                 output_image32 = cv2.resize(output_image32, (screen_width // 2, screen_height // 2))
                 output_image16 = cv2.resize(output_image16, (screen_width // 2, screen_height // 2))
 
-                # Create a blank screen array
                 screen = np.zeros((screen_height, screen_width, 3), dtype=np.uint8)
 
-                # Place the resized images in the screen array
                 screen[:screen_height // 2, :screen_width // 2] = original_image
                 screen[:screen_height // 2, screen_width // 2:] = output_image_default
                 screen[screen_height // 2:, :screen_width // 2] = output_image32
@@ -158,7 +153,6 @@ class AccuracyTester:
                 cv2.putText(screen[screen_height // 2:, screen_width // 2:], 'TensorRT_FP16', (10, 20), font, 0.5,
                             (0, 255, 0), 1, cv2.LINE_AA)
 
-                # Display the resulting image
                 if self.show_results:
                     cv2.imshow("Combined Images", screen)
                     cv2.waitKey(0)
@@ -174,12 +168,10 @@ class AccuracyTester:
         min_iou_score_16 = np.min(iou_scores_16)
         mean_iou_score_16 = np.mean(iou_scores_16)
 
-        # Add results to PrettyTable
-        self.table.add_row([f"{self.model_type} FP32", min_iou_score_32, mean_iou_score_32])
-        self.table.add_row([f"{self.model_type} FP16", min_iou_score_16, mean_iou_score_16])
+        self.table.add_row([f"{self.model_type} FP32", round(min_iou_score_32, 4), round(mean_iou_score_32, 4)])
+        self.table.add_row([f"{self.model_type} FP16", round(min_iou_score_16, 4), round(mean_iou_score_16, 4)])
 
         print(self.table)
-
 
 
 class PerformanceTester:
@@ -202,12 +194,13 @@ class PerformanceTester:
         self.context = None
         self.context_fp16 = None
         self.performance_table = PrettyTable()
-        self.performance_table.field_names = ["Model", "Average FPS", "Average Time (sec)", "Relative FPS", "Relative Time (%)"]
+        self.performance_table.field_names = ["Model", "Average FPS", "Average Time (sec)", "Relative FPS",
+                                              "Relative Time (%)"]
         self.performance_table.title = f"Performance Comparison for {self.model_type}"
 
     def add_to_table(self, name, fps, times, base_fps=None, base_times=None):
         avg_fps = round(fps, 2)
-        avg_time = round(times, 6)  # Round average time to 6 decimal places
+        avg_time = round(times, 6)
         if base_fps and base_times:
             rel_fps = round(fps / base_fps, 2)
             rel_time = round(times / base_times * 100, 2)
@@ -221,7 +214,8 @@ class PerformanceTester:
     def load_pytorch_model(self):
         self.sam = sam_model_registry[self.model_type](checkpoint=self.sam_checkpoint)
         self.sam_image_encoder = SamPredictor(self.sam.to(self.device))
-        self.input_image_processed = utils.preprocess_image(self.input_image, 1024, self.device, self.pixel_mean, self.pixel_std, self.img_size)
+        self.input_image_processed = utils.preprocess_image(self.input_image, 1024, self.device, self.pixel_mean,
+                                                            self.pixel_std, self.img_size)
 
     def unload_pytorch_model(self):
         del self.sam
@@ -308,16 +302,23 @@ class PerformanceTester:
         original_output = self.sam_image_encoder.set_image(self.input_image)
 
     def run_tensorrt_model_fp32(self):
-        tensorrt_output = utils.do_inference_v2(self.context, bindings=self.bindings, inputs=self.inputs, outputs=self.outputs, stream=self.stream)[0]
+        tensorrt_output = \
+        utils.do_inference_v2(self.context, bindings=self.bindings, inputs=self.inputs, outputs=self.outputs,
+                              stream=self.stream)[0]
 
     def run_tensorrt_model_fp16(self):
-        tensorrt_output = utils.do_inference_v2(self.context_fp16, bindings=self.bindings, inputs=self.inputs, outputs=self.outputs, stream=self.stream)[0]
+        tensorrt_output = \
+        utils.do_inference_v2(self.context_fp16, bindings=self.bindings, inputs=self.inputs, outputs=self.outputs,
+                              stream=self.stream)[0]
 
     def run_tensorrt_model_ensemble(self):
-        tensorrt_output = utils.do_inference_v2_ensemble(*self.context, bindings=self.bindings, inputs=self.inputs, outputs=self.outputs, stream=self.stream)[0]
+        tensorrt_output = \
+        utils.do_inference_v2_ensemble(*self.context, bindings=self.bindings, inputs=self.inputs, outputs=self.outputs,
+                                       stream=self.stream)[0]
 
     def run_tensorrt_model_fp16_ensemble(self):
-        tensorrt_output = utils.do_inference_v2_ensemble(*self.context_fp16, bindings=self.bindings, inputs=self.inputs, outputs=self.outputs, stream=self.stream)[0]
+        tensorrt_output = utils.do_inference_v2_ensemble(*self.context_fp16, bindings=self.bindings, inputs=self.inputs,
+                                                         outputs=self.outputs, stream=self.stream)[0]
 
     def time_model(self, model, warmup_iters, measure_iters):
         # Warmup loop
@@ -331,7 +332,6 @@ class PerformanceTester:
         end_time = timeit.default_timer()
         elapsed_time = end_time - start_time
 
-        # Calculate average FPS and average time
         avg_fps = measure_iters / elapsed_time
         avg_time = elapsed_time / measure_iters
 
@@ -378,7 +378,6 @@ class PerformanceTester:
             fps3, times3 = self.time_model(self.run_tensorrt_model_fp16_ensemble, warmup_iters, measure_iters)
             self.unload_tensorrt_model_fp16_ensemble()
 
-        # Printing the stats
         self.add_to_table("PyTorch model", fps1, times1, fps1, times1)
         self.add_to_table("TensorRT model", fps2, times2, fps1, times1)
         self.add_to_table("TensorRT FP16 model", fps3, times3, fps1, times1)

@@ -10,17 +10,17 @@ class InferenceEngine:
     def __init__(self, pth_path, trt_model_1: str, trt_model_2=None):
         if not os.path.isfile(pth_path):
             raise FileNotFoundError(f"couldnt find file\n{pth_path}")
-        if os.path.getsize(pth_path) == 2564550879:
+        if os.path.getsize(pth_path) > 2000000000:
             if trt_model_1.endswith(".onnx"):
                 self.currentModel = InferOnnx(pth_path, trt_model_1, trt_model_2, "vit_h")
             else:
                 self.currentModel = InferSamH(pth_path, trt_model_1, trt_model_2, "vit_h")
-        elif os.path.getsize(pth_path) == 1249524607:
+        elif os.path.getsize(pth_path) > 1000000000:
             if trt_model_1.endswith(".onnx"):
                 self.currentModel = InferOnnx(pth_path, trt_model_1, None, "vit_l")
             else:
                 self.currentModel = InferSamBL(pth_path, trt_model_1, "vit_l")
-        elif os.path.getsize(pth_path) == 375042383:
+        elif os.path.getsize(pth_path) > 300000000:
             if trt_model_1.endswith(".onnx"):
                 self.currentModel = InferOnnx(pth_path, trt_model_1, None, "vit_b")
             else:
@@ -90,7 +90,7 @@ class InferSamH:
         self.inputs1, self.outputs1, self.inputs2, self.outputs2, self.bindings1, self.bindings2, self.stream = utils.allocate_buffers_ensemble(
             engine1, engine2, 1)
 
-    def infer(self, input_image, input_point, input_label):
+    def infer(self, input_image, input_data, input_label):
         pixel_mean = torch.tensor([123.675, 116.28, 103.53])
         pixel_std = torch.tensor([58.395, 57.12, 57.375])
         img_size = 1024
@@ -105,7 +105,20 @@ class InferSamH:
         output = output.reshape((1, 256, 64, 64))
 
         self.predictor.set_image(input_image, embeddings=torch.tensor(output).to("cuda"))
-        masks, scores, logits = self.predictor.predict(point_coords=input_point, point_labels=input_label,
+
+        if isinstance(input_data, torch.Tensor):
+            input_data = input_data.numpy()
+        if input_data.shape[-1] == 4:
+            input_box = input_data
+            input_label = None
+            input_point = None
+        else:
+            input_box = None
+            input_point = input_data
+
+        masks, scores, logits = self.predictor.predict(point_coords=input_point,
+                                                       point_labels=input_label,
+                                                       box=input_box,
                                                        multimask_output=False)
 
         return masks
@@ -129,7 +142,7 @@ class InferSamBL:
 
         self.inputs, self.outputs, self.bindings, self.stream = utils.allocate_buffers(engine, max_batch_size=1)
 
-    def infer(self, input_image, input_point, input_label):
+    def infer(self, input_image, input_data, input_label):
         pixel_mean = torch.tensor([123.675, 116.28, 103.53])
         pixel_std = torch.tensor([58.395, 57.12, 57.375])
         img_size = 1024
@@ -141,7 +154,20 @@ class InferSamBL:
         output = output.reshape((1, 256, 64, 64))
 
         self.predictor.set_image(input_image, embeddings=torch.tensor(output).to("cuda"))
-        masks, scores, logits = self.predictor.predict(point_coords=input_point, point_labels=input_label,
+
+        if isinstance(input_data, torch.Tensor):
+            input_data = input_data.numpy()
+        if input_data.shape[-1] == 4:
+            input_box = input_data
+            input_label = None
+            input_point = None
+        else:
+            input_box = None
+            input_point = input_data
+
+        masks, scores, logits = self.predictor.predict(point_coords=input_point,
+                                                       point_labels=input_label,
+                                                       box=input_box,
                                                        multimask_output=False)
 
         return masks
